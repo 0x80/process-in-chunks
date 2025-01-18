@@ -1,0 +1,7 @@
+{
+  "extends": "@codecompose/typescript-config/single-library.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "lib": ["esnext"]
+  }
+}
