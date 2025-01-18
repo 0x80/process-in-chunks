@@ -51,7 +51,7 @@ const result = await processInChunksByChunk(
    * Throttle and chunkSize are optional. Here, we process 3 items at a time,
    * one chunk per second.
    */
-  { chunkSize: 3, throttleSecs: 1 }
+  { chunkSize: 3, throttleSeconds: 1 }
 );
 
 /** This will log [6, 15, 24, 10], after roughly 4 seconds have passed */

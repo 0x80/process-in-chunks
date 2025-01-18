@@ -9,12 +9,12 @@ import {
 
 export type ChunkingOptions = {
   chunkSize?: number;
-  throttleSecs?: number;
+  throttleSeconds?: number;
 };
 
 const optionsDefaults: Required<ChunkingOptions> = {
   chunkSize: 500,
-  throttleSecs: 0,
+  throttleSeconds: 0,
 };
 
 /**
@@ -27,7 +27,7 @@ export async function processInChunks<T, R>(
   processFn: (value: T, index: number) => R | Promise<R>,
   options: ChunkingOptions = {}
 ): Promise<R[]> {
-  const { chunkSize, throttleSecs } = Object.assign(
+  const { chunkSize, throttleSeconds } = Object.assign(
     {},
     optionsDefaults,
     options
@@ -48,10 +48,10 @@ export async function processInChunks<T, R>(
       );
 
       /** Run throttle wait in parallel with processing if throttling is enabled */
-      if (throttleSecs > 0) {
+      if (throttleSeconds > 0) {
         const [results] = await Promise.all([
           processPromise,
-          waitSeconds(throttleSecs),
+          waitSeconds(throttleSeconds),
         ]);
         allResults.push(...results);
       } else {
@@ -85,7 +85,7 @@ export async function processInChunksByChunk<T, R>(
   processFn: (chunk: T[], index: number) => R | Promise<R>,
   options: ChunkingOptions = {}
 ): Promise<R[]> {
-  const { chunkSize, throttleSecs } = Object.assign(
+  const { chunkSize, throttleSeconds } = Object.assign(
     {},
     optionsDefaults,
     options
@@ -104,10 +104,10 @@ export async function processInChunksByChunk<T, R>(
       const processPromise = processFn(items, overallIndex);
 
       /** Run throttle wait in parallel with processing if throttling is enabled */
-      if (throttleSecs > 0) {
+      if (throttleSeconds > 0) {
         const [result] = await Promise.all([
           processPromise,
-          waitSeconds(throttleSecs),
+          waitSeconds(throttleSeconds),
         ]);
         allResults.push(result);
       } else {
