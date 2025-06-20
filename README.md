@@ -124,6 +124,65 @@ When `shouldThrow: true`:
 - Processing stops immediately on first error
 - Original error is rethrown (not wrapped or modified)
 
+## Migration from v1 to v2
+
+### Breaking Changes
+
+In v2, the default error handling behavior has changed. The functions now return
+a discriminated union by default instead of throwing errors.
+
+**v1 behavior (threw errors):**
+
+```ts
+try {
+  const results = await processInChunks(items, processFn);
+  // results was R[]
+  console.log(results);
+} catch (error) {
+  // Handle error
+}
+```
+
+**v2 equivalent (set shouldThrow: true):**
+
+```ts
+try {
+  const results = await processInChunks(items, processFn, {
+    shouldThrow: true,
+  });
+  // results is R[]
+  console.log(results);
+} catch (error) {
+  // Handle error - same as v1
+}
+```
+
+**v2 default behavior (discriminated union):**
+
+```ts
+const result = await processInChunks(items, processFn);
+if (result.hasErrors) {
+  /** ErrorMessages is a list of unique error messages */
+  console.error(result.errorMessages);
+
+  /**
+   * Results type is (R | undefined)[] here. Filter out undefined to ignore the
+   * failed items.
+   */
+  return result.results.filter(isDefined);
+}
+
+// Here, results is typed as R[]
+return result.results;
+```
+
+### Migration Steps
+
+1. **For existing code that expects throwing behavior**: Add
+   `{ shouldThrow: true }` to your options
+2. **For new code**: Consider using the new discriminated union API for more
+   error handling control
+
 ## API
 
 @TODO some more docs. In the meantime, please just have a look at the function
