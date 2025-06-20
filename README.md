@@ -19,17 +19,17 @@ defaults to 500.
 ```ts
 import { processInChunks } from "process-in-chunks";
 
-const results = await processInChunks(
+const result = await processInChunks(
   [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
   async (item, index) => {
     console.log(`Processing item ${index}, value ${item}`);
 
-    return value * 10;
+    return item * 10;
   }
 );
 
 /** This will log [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] */
-console.log(results);
+console.log(result.results);
 ```
 
 ### Process with a chunk-sized handler
@@ -55,8 +55,41 @@ const result = await processInChunksByChunk(
 );
 
 /** This will log [6, 15, 24, 10], after roughly 4 seconds have passed */
-console.log(result);
+console.log(result.results);
 ```
+
+### Error Handling
+
+Both functions handle errors gracefully by collecting error messages and
+returning a discriminated union that allows the calling context to decide how to
+handle errors. The functions themselves never throw - they return either
+successful results or results with error information.
+
+```ts
+import { processInChunks } from "process-in-chunks";
+
+const result = await processInChunks([1, 2, 3, 4, 5], async (item) => {
+  if (item % 2 === 0) {
+    throw new Error(`Failed to process even number: ${item}`);
+  }
+  return `Processed: ${item}`;
+});
+
+if (result.hasErrors) {
+  // Choose to throw an error with concatenated messages
+  throw new Error(result.errorMessages.join("; "));
+}
+
+// TypeScript here knows results is string[] without undefined values
+console.log("All items processed successfully:", result.results);
+```
+
+The discriminated union provides type safety:
+
+- When `hasErrors` is `false`: `results` is guaranteed to be `R[]` (no
+  undefined) and `errorMessages` is undefined
+- When `hasErrors` is `true`: `results` will contain undefined values and
+  `errorMessages` is available
 
 ## API
 

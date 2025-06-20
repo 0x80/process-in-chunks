@@ -1,16 +1,21 @@
-import {
-  chunk,
-  getErrorMessage,
-  isEmpty,
-  logIfVerbose,
-  take,
-  waitSeconds,
-} from "./utils";
+import { chunk, getErrorMessage, logIfVerbose, waitSeconds } from "./utils";
 
 export type ChunkingOptions = {
   chunkSize?: number;
   throttleSeconds?: number;
 };
+
+export type ProcessResult<R> =
+  | {
+      hasErrors: false;
+      results: R[];
+      errorMessages?: undefined;
+    }
+  | {
+      hasErrors: true;
+      results: (R | undefined)[];
+      errorMessages: string[];
+    };
 
 const optionsDefaults: Required<ChunkingOptions> = {
   chunkSize: 500,
@@ -26,7 +31,7 @@ export async function processInChunks<T, R>(
   allItems: T[],
   processFn: (value: T, index: number) => R | Promise<R>,
   options: ChunkingOptions = {}
-): Promise<R[]> {
+): Promise<ProcessResult<R>> {
   const { chunkSize, throttleSeconds } = Object.assign(
     {},
     optionsDefaults,
@@ -36,44 +41,58 @@ export async function processInChunks<T, R>(
   const chunks = chunk(allItems, chunkSize);
   let overallIndex = 0;
 
-  const errorMessages: string[] = [];
-  const allResults: R[] = [];
+  const errorMessagesSet = new Set<string>();
+  const results: (R | undefined)[] = [];
 
   for (const [index, items] of chunks.entries()) {
     logIfVerbose(`Processing chunk ${index + 1}/${chunks.length}`);
 
-    try {
-      const processPromise = Promise.all(
-        items.map((v, idx) => processFn(v, overallIndex + idx))
-      );
-
-      /** Run throttle wait in parallel with processing if throttling is enabled */
-      if (throttleSeconds > 0) {
-        const [results] = await Promise.all([
-          processPromise,
-          waitSeconds(throttleSeconds),
-        ]);
-        allResults.push(...results);
-      } else {
-        const results = await processPromise;
-        allResults.push(...results);
+    // Process each item individually with error handling
+    const itemPromises = items.map(async (v, idx) => {
+      try {
+        const result = await processFn(v, overallIndex + idx);
+        return { success: true, result };
+      } catch (err) {
+        errorMessagesSet.add(getErrorMessage(err));
+        return { success: false, result: undefined };
       }
+    });
 
-      overallIndex += items.length;
-    } catch (err) {
-      errorMessages.push(getErrorMessage(err));
+    /** Run throttle wait in parallel with processing if throttling is enabled */
+    if (throttleSeconds > 0) {
+      const [itemResults] = await Promise.all([
+        Promise.all(itemPromises),
+        waitSeconds(throttleSeconds),
+      ]);
+
+      for (const itemResult of itemResults) {
+        results.push(itemResult.result);
+      }
+    } else {
+      const itemResults = await Promise.all(itemPromises);
+
+      for (const itemResult of itemResults) {
+        results.push(itemResult.result);
+      }
     }
+
+    overallIndex += items.length;
   }
 
-  if (!isEmpty(errorMessages)) {
-    throw new Error(
-      `Failed to process all chunks successfully. Error messages (limited to 10): ${JSON.stringify(
-        take(errorMessages, 10)
-      )}}`
-    );
-  }
+  const errorMessages = Array.from(errorMessagesSet);
 
-  return allResults;
+  if (errorMessages.length === 0) {
+    return {
+      hasErrors: false,
+      results: results as R[],
+    };
+  } else {
+    return {
+      hasErrors: true,
+      results,
+      errorMessages,
+    };
+  }
 }
 
 /**
@@ -84,7 +103,7 @@ export async function processInChunksByChunk<T, R>(
   allItems: T[],
   processFn: (chunk: T[], index: number) => R | Promise<R>,
   options: ChunkingOptions = {}
-): Promise<R[]> {
+): Promise<ProcessResult<R>> {
   const { chunkSize, throttleSeconds } = Object.assign(
     {},
     optionsDefaults,
@@ -92,8 +111,8 @@ export async function processInChunksByChunk<T, R>(
   );
 
   const chunks = chunk(allItems, chunkSize);
-  const errorMessages: string[] = [];
-  const allResults: R[] = [];
+  const errorMessagesSet = new Set<string>();
+  const results: (R | undefined)[] = [];
 
   let overallIndex = 0;
 
@@ -109,25 +128,32 @@ export async function processInChunksByChunk<T, R>(
           processPromise,
           waitSeconds(throttleSeconds),
         ]);
-        allResults.push(result);
+        results.push(result);
       } else {
         const result = await processPromise;
-        allResults.push(result);
+        results.push(result);
       }
 
       overallIndex += chunkSize;
     } catch (err) {
-      errorMessages.push(getErrorMessage(err));
+      errorMessagesSet.add(getErrorMessage(err));
+      results.push(undefined);
+      overallIndex += chunkSize;
     }
   }
 
-  if (!isEmpty(errorMessages)) {
-    throw new Error(
-      `Failed to process all chunks successfully. Error messages (limited to 10): ${JSON.stringify(
-        take(errorMessages, 10)
-      )}}`
-    );
-  }
+  const errorMessages = Array.from(errorMessagesSet);
 
-  return allResults;
+  if (errorMessages.length === 0) {
+    return {
+      hasErrors: false,
+      results: results as R[],
+    };
+  } else {
+    return {
+      hasErrors: true,
+      results,
+      errorMessages,
+    };
+  }
 }
