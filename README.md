@@ -91,6 +91,39 @@ The discriminated union provides type safety:
 - When `hasErrors` is `true`: `results` will contain undefined values and
   `errorMessages` is available
 
+### Fail-Fast Mode
+
+You can enable fail-fast behavior by setting `shouldThrow: true`. In this mode,
+the functions will throw the original error immediately when the first error
+occurs, stopping all further processing.
+
+```ts
+import { processInChunks } from "process-in-chunks";
+
+// This will throw immediately on the first error
+const results = await processInChunks(
+  [1, 2, 3, 4, 5],
+  async (item) => {
+    if (item % 2 === 0) {
+      throw new Error(`Failed to process even number: ${item}`);
+    }
+    return `Processed: ${item}`;
+  },
+  { shouldThrow: true }
+);
+
+// TypeScript knows results is string[] (no undefined values possible)
+// If we reach this point, all items were processed successfully
+console.log("All items processed:", results);
+```
+
+When `shouldThrow: true`:
+
+- The function returns `R[]` directly (no discriminated union)
+- No undefined values in results (guaranteed by TypeScript)
+- Processing stops immediately on first error
+- Original error is rethrown (not wrapped or modified)
+
 ## API
 
 @TODO some more docs. In the meantime, please just have a look at the function

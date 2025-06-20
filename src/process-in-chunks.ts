@@ -3,6 +3,7 @@ import { chunk, getErrorMessage, logIfVerbose, waitSeconds } from "./utils";
 export type ChunkingOptions = {
   chunkSize?: number;
   throttleSeconds?: number;
+  shouldThrow?: boolean;
 };
 
 export type ProcessResult<R> =
@@ -20,6 +21,7 @@ export type ProcessResult<R> =
 const optionsDefaults: Required<ChunkingOptions> = {
   chunkSize: 500,
   throttleSeconds: 0,
+  shouldThrow: false,
 };
 
 /**
@@ -30,9 +32,19 @@ const optionsDefaults: Required<ChunkingOptions> = {
 export async function processInChunks<T, R>(
   allItems: T[],
   processFn: (value: T, index: number) => R | Promise<R>,
+  options: ChunkingOptions & { shouldThrow: true }
+): Promise<R[]>;
+export async function processInChunks<T, R>(
+  allItems: T[],
+  processFn: (value: T, index: number) => R | Promise<R>,
+  options?: ChunkingOptions
+): Promise<ProcessResult<R>>;
+export async function processInChunks<T, R>(
+  allItems: T[],
+  processFn: (value: T, index: number) => R | Promise<R>,
   options: ChunkingOptions = {}
-): Promise<ProcessResult<R>> {
-  const { chunkSize, throttleSeconds } = Object.assign(
+): Promise<ProcessResult<R> | R[]> {
+  const { chunkSize, throttleSeconds, shouldThrow } = Object.assign(
     {},
     optionsDefaults,
     options
@@ -53,6 +65,9 @@ export async function processInChunks<T, R>(
         const result = await processFn(v, overallIndex + idx);
         return { success: true, result };
       } catch (err) {
+        if (shouldThrow) {
+          throw err; // Rethrow original error immediately
+        }
         errorMessagesSet.add(getErrorMessage(err));
         return { success: false, result: undefined };
       }
@@ -81,6 +96,11 @@ export async function processInChunks<T, R>(
 
   const errorMessages = Array.from(errorMessagesSet);
 
+  if (shouldThrow) {
+    // If shouldThrow is true and we reach here, there were no errors
+    return results as R[];
+  }
+
   if (errorMessages.length === 0) {
     return {
       hasErrors: false,
@@ -102,9 +122,19 @@ export async function processInChunks<T, R>(
 export async function processInChunksByChunk<T, R>(
   allItems: T[],
   processFn: (chunk: T[], index: number) => R | Promise<R>,
+  options: ChunkingOptions & { shouldThrow: true }
+): Promise<R[]>;
+export async function processInChunksByChunk<T, R>(
+  allItems: T[],
+  processFn: (chunk: T[], index: number) => R | Promise<R>,
+  options?: ChunkingOptions
+): Promise<ProcessResult<R>>;
+export async function processInChunksByChunk<T, R>(
+  allItems: T[],
+  processFn: (chunk: T[], index: number) => R | Promise<R>,
   options: ChunkingOptions = {}
-): Promise<ProcessResult<R>> {
-  const { chunkSize, throttleSeconds } = Object.assign(
+): Promise<ProcessResult<R> | R[]> {
+  const { chunkSize, throttleSeconds, shouldThrow } = Object.assign(
     {},
     optionsDefaults,
     options
@@ -136,6 +166,9 @@ export async function processInChunksByChunk<T, R>(
 
       overallIndex += chunkSize;
     } catch (err) {
+      if (shouldThrow) {
+        throw err; // Rethrow original error immediately
+      }
       errorMessagesSet.add(getErrorMessage(err));
       results.push(undefined);
       overallIndex += chunkSize;
@@ -143,6 +176,11 @@ export async function processInChunksByChunk<T, R>(
   }
 
   const errorMessages = Array.from(errorMessagesSet);
+
+  if (shouldThrow) {
+    // If shouldThrow is true and we reach here, there were no errors
+    return results as R[];
+  }
 
   if (errorMessages.length === 0) {
     return {
