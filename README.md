@@ -149,8 +149,9 @@ await processInChunks(items, handler, { chunkSize: 100 });
 
 - **Type**: `number`
 - **Default**: `0`
-- **Description**: Delay in seconds between processing chunks. Useful for rate
-  limiting.
+- **Description**: Minimum time in seconds for processing each chunk. The
+  throttle runs in parallel with processing, so it only adds delay if the chunk
+  finishes faster than the specified time. Useful for rate limiting.
 
 ```ts
 await processInChunks(items, handler, { throttleSeconds: 2 });
@@ -258,7 +259,7 @@ const users = await processInChunksByChunk(
   },
   {
     chunkSize: 5, // 5 users per batch
-    throttleSeconds: 1, // 1 second between batches
+    throttleSeconds: 1, // At least 1 second per batch
   },
 );
 ```
@@ -314,7 +315,7 @@ await processInChunks(
   },
   {
     chunkSize: 50, // Process 50 events at a time
-    throttleSeconds: 0.5, // Small delay to avoid overwhelming the message system
+    throttleSeconds: 0.5, // At least 0.5s per chunk to avoid overwhelming the system
   },
 );
 
