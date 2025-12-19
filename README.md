@@ -39,7 +39,7 @@ are injecting the items via an API endpoint into some database or external
 system that accepts multiple items for each call.
 
 ```ts
-import { processInChunks } from "process-in-chunks";
+import { processInChunksByChunk } from "process-in-chunks";
 
 const result = await processInChunksByChunk(
   [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
