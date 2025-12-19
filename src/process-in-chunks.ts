@@ -74,21 +74,15 @@ export async function processInChunks<T, R>(
     });
 
     /** Run throttle wait in parallel with processing if throttling is enabled */
-    if (throttleSeconds > 0) {
-      const [itemResults] = await Promise.all([
-        Promise.all(itemPromises),
-        waitSeconds(throttleSeconds),
-      ]);
+    const itemResults = await (throttleSeconds > 0
+      ? Promise.all([
+          Promise.all(itemPromises),
+          waitSeconds(throttleSeconds),
+        ]).then(([results]) => results)
+      : Promise.all(itemPromises));
 
-      for (const itemResult of itemResults) {
-        results.push(itemResult.result);
-      }
-    } else {
-      const itemResults = await Promise.all(itemPromises);
-
-      for (const itemResult of itemResults) {
-        results.push(itemResult.result);
-      }
+    for (const itemResult of itemResults) {
+      results.push(itemResult.result);
     }
 
     overallIndex += items.length;
@@ -153,25 +147,21 @@ export async function processInChunksByChunk<T, R>(
       const processPromise = processFn(items, overallIndex);
 
       /** Run throttle wait in parallel with processing if throttling is enabled */
-      if (throttleSeconds > 0) {
-        const [result] = await Promise.all([
-          processPromise,
-          waitSeconds(throttleSeconds),
-        ]);
-        results.push(result);
-      } else {
-        const result = await processPromise;
-        results.push(result);
-      }
+      const result = await (throttleSeconds > 0
+        ? Promise.all([processPromise, waitSeconds(throttleSeconds)]).then(
+            ([res]) => res
+          )
+        : processPromise);
 
-      overallIndex += chunkSize;
+      results.push(result);
+      overallIndex += items.length;
     } catch (err) {
       if (!noThrow) {
         throw err; // Rethrow original error immediately
       }
       errorMessagesSet.add(getErrorMessage(err));
       results.push(undefined);
-      overallIndex += chunkSize;
+      overallIndex += items.length;
     }
   }
 
