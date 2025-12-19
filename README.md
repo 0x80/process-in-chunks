@@ -29,7 +29,7 @@ import { processInChunks } from "process-in-chunks";
 // Process items in parallel chunks
 const results = await processInChunks(
   [1, 2, 3, 4, 5],
-  async (item) => item * 2
+  async (item) => item * 2,
 );
 console.log(results); // [2, 4, 6, 8, 10]
 ```
@@ -49,7 +49,7 @@ const results = await processInChunks(
   async (item, index) => {
     console.log(`Processing item ${index}, value ${item}`);
     return item * 10;
-  }
+  },
 );
 
 console.log(results); // [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
@@ -69,7 +69,7 @@ const results = await processInChunksByChunk(
     // Process entire chunk at once
     return chunk.reduce((sum, item) => sum + item, 0);
   },
-  { chunkSize: 3, throttleSeconds: 1 }
+  { chunkSize: 3, throttleSeconds: 1 },
 );
 
 console.log(results); // [6, 15, 24, 10] (after ~4 seconds)
@@ -115,7 +115,7 @@ const result = await processInChunks(
     }
     return `Processed: ${item}`;
   },
-  { noThrow: true }
+  { noThrow: true },
 );
 
 if (result.hasErrors) {
@@ -235,7 +235,7 @@ const fileContents = await processInChunks(
     const content = await readFile(filePath, "utf-8");
     return { path: filePath, content, size: content.length };
   },
-  { chunkSize: 10 } // Process 10 files at a time
+  { chunkSize: 10 }, // Process 10 files at a time
 );
 ```
 
@@ -259,7 +259,7 @@ const users = await processInChunksByChunk(
   {
     chunkSize: 5, // 5 users per batch
     throttleSeconds: 1, // 1 second between batches
-  }
+  },
 );
 ```
 
@@ -277,14 +277,14 @@ const result = await processInChunks(
     }
     return num * 2;
   },
-  { noThrow: true }
+  { noThrow: true },
 );
 
 if (result.hasErrors) {
   console.log("Errors:", result.errorMessages);
   console.log(
     "Valid results:",
-    result.results.filter((r) => r !== undefined)
+    result.results.filter((r) => r !== undefined),
   );
 }
 ```
@@ -315,7 +315,7 @@ await processInChunks(
   {
     chunkSize: 50, // Process 50 events at a time
     throttleSeconds: 0.5, // Small delay to avoid overwhelming the message system
-  }
+  },
 );
 
 console.log("All events published successfully!");

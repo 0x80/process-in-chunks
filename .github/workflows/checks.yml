@@ -62,6 +62,5 @@ jobs:
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
           GOOGLE_CLOUD_PROJECT: stafftraveler
-          GOOGLE_APPLICATION_CREDENTIALS:
-            ${{ steps.auth.outputs.credentials_file_path }}
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
         run: pnpm ${{ matrix.command }}
