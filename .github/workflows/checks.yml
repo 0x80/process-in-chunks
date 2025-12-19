@@ -1,0 +1,67 @@
+name: Checks
+
+on:
+  pull_request: # push is handled in the deploy workflows
+    branches: ["**"]
+  workflow_call:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        command: [check-types, check-format, lint, test]
+    name: ${{ matrix.command }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable corepack
+        run: corepack enable pnpm
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          # First tries exact match with lock file hash. If not found,
+          # falls back to any cache starting with 'pnpm-store-'.
+          # This way we get exact cache on repeated runs, but can still
+          # use older cache as starting point when dependencies change.
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        if: matrix.command == 'test'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/447252512630/locations/global/workloadIdentityPools/github-actions/providers/github-actions-provider
+          service_account: github-actions-deployer@stafftraveler.iam.gserviceaccount.com
+
+      - name: Run ${{ matrix.command }}
+        env:
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+          GOOGLE_CLOUD_PROJECT: stafftraveler
+          GOOGLE_APPLICATION_CREDENTIALS:
+            ${{ steps.auth.outputs.credentials_file_path }}
+        run: pnpm ${{ matrix.command }}

@@ -192,8 +192,8 @@ Process entire chunks at once.
 **Parameters:**
 
 - `items: T[]` - Array of items to process
-- `handler: (chunk: T[], index: number) => R | Promise<R>` - Function to
-  process each chunk (where `index` is the zero-based chunk index)
+- `handler: (chunk: T[], index: number) => R | Promise<R>` - Function to process
+  each chunk (where `index` is the zero-based chunk index)
 - `options?: ChunkingOptions` - Optional configuration
 
 **Returns:**
