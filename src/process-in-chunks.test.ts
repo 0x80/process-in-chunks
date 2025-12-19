@@ -113,8 +113,8 @@ describe("processInChunks", () => {
     });
   });
 
-  describe("error handling", () => {
-    it("throws error when any item fails", async () => {
+  describe("error handling (default - throws)", () => {
+    it("throws original error when any item fails", async () => {
       const items = [1, 2, 3];
 
       await expect(
@@ -124,39 +124,96 @@ describe("processInChunks", () => {
           }
           return item;
         })
-      ).rejects.toThrow("Failed to process all chunks successfully");
+      ).rejects.toThrow("Item 2 failed");
     });
 
-    it("error message contains the failure reason", async () => {
-      const items = [1, 2, 3];
+    it("throws immediately on first error", async () => {
+      const items = [1, 2, 3, 4, 5];
+      const processed: number[] = [];
 
       await expect(
-        processInChunks(items, async (item) => {
-          if (item === 2) {
-            throw new Error("Specific failure message");
-          }
-          return item;
-        })
-      ).rejects.toThrow("Specific failure message");
-    });
-
-    it("limits error messages to 10 in output", async () => {
-      const items = Array.from({ length: 15 }, (_, i) => i);
-
-      try {
-        await processInChunks(
+        processInChunks(
           items,
           async (item) => {
-            throw new Error(`Error ${item}`);
+            processed.push(item);
+            if (item === 2) {
+              throw new Error("Item 2 failed");
+            }
+            return item;
           },
-          { chunkSize: 20 }
-        );
-      } catch (err) {
-        const errorMessage = (err as Error).message;
-        /** Count how many "Error" occurrences in the message */
-        const errorCount = (errorMessage.match(/"Error \d+"/g) || []).length;
-        expect(errorCount).toBeLessThanOrEqual(10);
-      }
+          { chunkSize: 5 }
+        )
+      ).rejects.toThrow("Item 2 failed");
+    });
+  });
+
+  describe("error handling (noThrow: true)", () => {
+    it("returns ProcessResult with hasErrors: false when no errors", async () => {
+      const items = [1, 2, 3];
+
+      const result = await processInChunks(items, async (item) => item * 2, {
+        noThrow: true,
+      });
+
+      expect(result.hasErrors).toBe(false);
+      expect(result.results).toEqual([2, 4, 6]);
+      expect(result.errorMessages).toBeUndefined();
+    });
+
+    it("returns ProcessResult with hasErrors: true and partial results on error", async () => {
+      const items = [1, 2, 3, 4, 5];
+
+      const result = await processInChunks(
+        items,
+        async (item) => {
+          if (item % 2 === 0) {
+            throw new Error(`Failed: ${item}`);
+          }
+          return item * 10;
+        },
+        { noThrow: true }
+      );
+
+      expect(result.hasErrors).toBe(true);
+      expect(result.results).toEqual([10, undefined, 30, undefined, 50]);
+      expect(result.errorMessages).toContain("Failed: 2");
+      expect(result.errorMessages).toContain("Failed: 4");
+    });
+
+    it("collects unique error messages", async () => {
+      const items = [1, 2, 3, 4, 5];
+
+      const result = await processInChunks(
+        items,
+        async (item) => {
+          if (item % 2 === 0) {
+            throw new Error("Same error");
+          }
+          return item;
+        },
+        { noThrow: true }
+      );
+
+      expect(result.hasErrors).toBe(true);
+      /** Same error thrown twice, but should only appear once in Set */
+      expect(result.errorMessages).toHaveLength(1);
+      expect(result.errorMessages).toContain("Same error");
+    });
+
+    it("handles all items failing", async () => {
+      const items = [1, 2, 3];
+
+      const result = await processInChunks(
+        items,
+        async () => {
+          throw new Error("All fail");
+        },
+        { noThrow: true }
+      );
+
+      expect(result.hasErrors).toBe(true);
+      expect(result.results).toEqual([undefined, undefined, undefined]);
+      expect(result.errorMessages).toEqual(["All fail"]);
     });
   });
 });
@@ -221,8 +278,8 @@ describe("processInChunksByChunk", () => {
     });
   });
 
-  describe("error handling", () => {
-    it("throws error when chunk processing fails", async () => {
+  describe("error handling (default - throws)", () => {
+    it("throws original error when chunk processing fails", async () => {
       const items = [1, 2, 3, 4];
 
       await expect(
@@ -237,6 +294,58 @@ describe("processInChunksByChunk", () => {
           { chunkSize: 2 }
         )
       ).rejects.toThrow("Chunk with 3 failed");
+    });
+  });
+
+  describe("error handling (noThrow: true)", () => {
+    it("returns ProcessResult with hasErrors: false when no errors", async () => {
+      const items = [1, 2, 3, 4, 5, 6];
+
+      const result = await processInChunksByChunk(
+        items,
+        async (chunk) => chunk.reduce((sum, n) => sum + n, 0),
+        { chunkSize: 2, noThrow: true }
+      );
+
+      expect(result.hasErrors).toBe(false);
+      expect(result.results).toEqual([3, 7, 11]);
+      expect(result.errorMessages).toBeUndefined();
+    });
+
+    it("returns ProcessResult with hasErrors: true and partial results on error", async () => {
+      const items = [1, 2, 3, 4, 5, 6];
+
+      const result = await processInChunksByChunk(
+        items,
+        async (chunk) => {
+          if (chunk.includes(3)) {
+            throw new Error("Chunk with 3 failed");
+          }
+          return chunk.reduce((sum, n) => sum + n, 0);
+        },
+        { chunkSize: 2, noThrow: true }
+      );
+
+      expect(result.hasErrors).toBe(true);
+      /** First chunk [1,2] succeeds, second [3,4] fails, third [5,6] succeeds */
+      expect(result.results).toEqual([3, undefined, 11]);
+      expect(result.errorMessages).toContain("Chunk with 3 failed");
+    });
+
+    it("handles all chunks failing", async () => {
+      const items = [1, 2, 3, 4];
+
+      const result = await processInChunksByChunk(
+        items,
+        async () => {
+          throw new Error("All chunks fail");
+        },
+        { chunkSize: 2, noThrow: true }
+      );
+
+      expect(result.hasErrors).toBe(true);
+      expect(result.results).toEqual([undefined, undefined]);
+      expect(result.errorMessages).toEqual(["All chunks fail"]);
     });
   });
 });
