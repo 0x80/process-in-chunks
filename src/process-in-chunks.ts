@@ -138,13 +138,11 @@ export async function processInChunksByChunk<T, R>(
   const errorMessagesSet = new Set<string>();
   const results: (R | undefined)[] = [];
 
-  let overallIndex = 0;
-
   for (const [index, items] of chunks.entries()) {
     logIfVerbose(`Processing chunk ${index + 1}/${chunks.length}`);
 
     try {
-      const processPromise = processFn(items, overallIndex);
+      const processPromise = processFn(items, index);
 
       /** Run throttle wait in parallel with processing if throttling is enabled */
       const result = await (throttleSeconds > 0
@@ -154,14 +152,12 @@ export async function processInChunksByChunk<T, R>(
         : processPromise);
 
       results.push(result);
-      overallIndex += items.length;
     } catch (err) {
       if (!noThrow) {
         throw err; // Rethrow original error immediately
       }
       errorMessagesSet.add(getErrorMessage(err));
       results.push(undefined);
-      overallIndex += items.length;
     }
   }
 
