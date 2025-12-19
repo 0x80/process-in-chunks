@@ -40,38 +40,26 @@ describe("processInChunks", () => {
   describe("chunking behavior", () => {
     it("respects custom chunkSize option", async () => {
       const items = [1, 2, 3, 4, 5, 6];
-      const chunksCalled: number[][] = [];
-
-      /** Track which items are processed together by using timing */
-      let currentChunk: number[] = [];
-      let processingChunk = false;
+      let maxConcurrent = 0;
+      let currentConcurrent = 0;
 
       await processInChunks(
         items,
         async (item) => {
-          if (!processingChunk) {
-            processingChunk = true;
-            currentChunk = [item];
-          } else {
-            currentChunk.push(item);
-          }
+          currentConcurrent++;
+          maxConcurrent = Math.max(maxConcurrent, currentConcurrent);
 
-          /** Small delay to allow parallel items to be added */
-          await new Promise((resolve) => setTimeout(resolve, 10));
+          /** Hold the item in processing to allow concurrent measurement */
+          await new Promise((resolve) => setTimeout(resolve, 50));
 
-          if (currentChunk.length > 0) {
-            chunksCalled.push([...currentChunk]);
-            currentChunk = [];
-            processingChunk = false;
-          }
-
+          currentConcurrent--;
           return item;
         },
         { chunkSize: 2 }
       );
 
-      /** With chunkSize 2 and 6 items, we expect 3 chunks */
-      expect(items.length / 2).toBe(3);
+      /** With chunkSize 2, max concurrent items should be 2 */
+      expect(maxConcurrent).toBe(2);
     });
 
     it("processes items in parallel within each chunk", async () => {
