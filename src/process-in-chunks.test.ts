@@ -208,6 +208,22 @@ describe("processInChunks", () => {
 
 describe("processInChunksByChunk", () => {
   describe("core behavior", () => {
+    it("passes correct chunk index to callback", async () => {
+      const items = [1, 2, 3, 4, 5, 6];
+      const receivedIndices: number[] = [];
+
+      await processInChunksByChunk(
+        items,
+        async (chunk, index) => {
+          receivedIndices.push(index);
+          return chunk.length;
+        },
+        { chunkSize: 2 },
+      );
+
+      expect(receivedIndices).toEqual([0, 1, 2]);
+    });
+
     it("passes entire chunk array to callback", async () => {
       const items = [1, 2, 3, 4, 5, 6];
       const receivedChunks: number[][] = [];
