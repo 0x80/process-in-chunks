@@ -49,19 +49,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Authenticate to Google Cloud
-        id: auth
-        if: matrix.command == 'test'
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: projects/447252512630/locations/global/workloadIdentityPools/github-actions/providers/github-actions-provider
-          service_account: github-actions-deployer@stafftraveler.iam.gserviceaccount.com
-
       - name: Run ${{ matrix.command }}
-        env:
-          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
-          GOOGLE_CLOUD_PROJECT: stafftraveler
-          GOOGLE_APPLICATION_CREDENTIALS:
-            ${{ steps.auth.outputs.credentials_file_path }}
         run: pnpm ${{ matrix.command }}

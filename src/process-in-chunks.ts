@@ -32,22 +32,22 @@ const optionsDefaults: Required<ChunkingOptions> = {
 export async function processInChunks<T, R>(
   allItems: T[],
   processFn: (value: T, index: number) => R | Promise<R>,
-  options: ChunkingOptions & { noThrow: true }
+  options: ChunkingOptions & { noThrow: true },
 ): Promise<ProcessResult<R>>;
 export async function processInChunks<T, R>(
   allItems: T[],
   processFn: (value: T, index: number) => R | Promise<R>,
-  options?: ChunkingOptions
+  options?: ChunkingOptions,
 ): Promise<R[]>;
 export async function processInChunks<T, R>(
   allItems: T[],
   processFn: (value: T, index: number) => R | Promise<R>,
-  options: ChunkingOptions = {}
+  options: ChunkingOptions = {},
 ): Promise<ProcessResult<R> | R[]> {
   const { chunkSize, throttleSeconds, noThrow } = Object.assign(
     {},
     optionsDefaults,
-    options
+    options,
   );
 
   const chunks = chunk(allItems, chunkSize);
@@ -116,22 +116,22 @@ export async function processInChunks<T, R>(
 export async function processInChunksByChunk<T, R>(
   allItems: T[],
   processFn: (chunk: T[], index: number) => R | Promise<R>,
-  options: ChunkingOptions & { noThrow: true }
+  options: ChunkingOptions & { noThrow: true },
 ): Promise<ProcessResult<R>>;
 export async function processInChunksByChunk<T, R>(
   allItems: T[],
   processFn: (chunk: T[], index: number) => R | Promise<R>,
-  options?: ChunkingOptions
+  options?: ChunkingOptions,
 ): Promise<R[]>;
 export async function processInChunksByChunk<T, R>(
   allItems: T[],
   processFn: (chunk: T[], index: number) => R | Promise<R>,
-  options: ChunkingOptions = {}
+  options: ChunkingOptions = {},
 ): Promise<ProcessResult<R> | R[]> {
   const { chunkSize, throttleSeconds, noThrow } = Object.assign(
     {},
     optionsDefaults,
-    options
+    options,
   );
 
   const chunks = chunk(allItems, chunkSize);
@@ -149,7 +149,7 @@ export async function processInChunksByChunk<T, R>(
       /** Run throttle wait in parallel with processing if throttling is enabled */
       const result = await (throttleSeconds > 0
         ? Promise.all([processPromise, waitSeconds(throttleSeconds)]).then(
-            ([res]) => res
+            ([res]) => res,
           )
         : processPromise);
 

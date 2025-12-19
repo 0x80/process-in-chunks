@@ -55,7 +55,7 @@ describe("processInChunks", () => {
           currentConcurrent--;
           return item;
         },
-        { chunkSize: 2 }
+        { chunkSize: 2 },
       );
 
       /** With chunkSize 2, max concurrent items should be 2 */
@@ -73,20 +73,20 @@ describe("processInChunks", () => {
           await new Promise((resolve) => setTimeout(resolve, 50));
           return item;
         },
-        { chunkSize: 2 }
+        { chunkSize: 2 },
       );
 
       /** Items 0 and 1 should start at nearly the same time (within a chunk) */
       expect(Math.abs(got(startTimes, 0) - got(startTimes, 1))).toBeLessThan(
-        20
+        20,
       );
       /** Items 2 and 3 should start at nearly the same time (within a chunk) */
       expect(Math.abs(got(startTimes, 2) - got(startTimes, 3))).toBeLessThan(
-        20
+        20,
       );
       /** Chunk 2 should start after chunk 1 finishes */
       expect(got(startTimes, 2) - got(startTimes, 0)).toBeGreaterThanOrEqual(
-        40
+        40,
       );
     });
 
@@ -111,7 +111,7 @@ describe("processInChunks", () => {
             throw new Error("Item 2 failed");
           }
           return item;
-        })
+        }),
       ).rejects.toThrow("Item 2 failed");
     });
 
@@ -129,8 +129,8 @@ describe("processInChunks", () => {
             }
             return item;
           },
-          { chunkSize: 5 }
-        )
+          { chunkSize: 5 },
+        ),
       ).rejects.toThrow("Item 2 failed");
     });
   });
@@ -159,7 +159,7 @@ describe("processInChunks", () => {
           }
           return item * 10;
         },
-        { noThrow: true }
+        { noThrow: true },
       );
 
       expect(result.hasErrors).toBe(true);
@@ -179,7 +179,7 @@ describe("processInChunks", () => {
           }
           return item;
         },
-        { noThrow: true }
+        { noThrow: true },
       );
 
       expect(result.hasErrors).toBe(true);
@@ -196,7 +196,7 @@ describe("processInChunks", () => {
         async () => {
           throw new Error("All fail");
         },
-        { noThrow: true }
+        { noThrow: true },
       );
 
       expect(result.hasErrors).toBe(true);
@@ -218,7 +218,7 @@ describe("processInChunksByChunk", () => {
           receivedChunks.push([...chunk]);
           return chunk.reduce((sum, n) => sum + n, 0);
         },
-        { chunkSize: 2 }
+        { chunkSize: 2 },
       );
 
       expect(receivedChunks).toEqual([
@@ -234,7 +234,7 @@ describe("processInChunksByChunk", () => {
       const results = await processInChunksByChunk(
         items,
         async (chunk) => chunk.reduce((sum, n) => sum + n, 0),
-        { chunkSize: 2 }
+        { chunkSize: 2 },
       );
 
       expect(results).toEqual([3, 7, 11]);
@@ -250,7 +250,7 @@ describe("processInChunksByChunk", () => {
           chunkSizes.push(chunk.length);
           return chunk.length;
         },
-        { chunkSize: 2 }
+        { chunkSize: 2 },
       );
 
       expect(chunkSizes).toEqual([2, 2, 1]);
@@ -259,7 +259,7 @@ describe("processInChunksByChunk", () => {
     it("handles empty array input", async () => {
       const results = await processInChunksByChunk(
         [],
-        async (chunk) => chunk.length
+        async (chunk) => chunk.length,
       );
 
       expect(results).toEqual([]);
@@ -279,8 +279,8 @@ describe("processInChunksByChunk", () => {
             }
             return chunk.reduce((sum, n) => sum + n, 0);
           },
-          { chunkSize: 2 }
-        )
+          { chunkSize: 2 },
+        ),
       ).rejects.toThrow("Chunk with 3 failed");
     });
   });
@@ -292,7 +292,7 @@ describe("processInChunksByChunk", () => {
       const result = await processInChunksByChunk(
         items,
         async (chunk) => chunk.reduce((sum, n) => sum + n, 0),
-        { chunkSize: 2, noThrow: true }
+        { chunkSize: 2, noThrow: true },
       );
 
       expect(result.hasErrors).toBe(false);
@@ -311,7 +311,7 @@ describe("processInChunksByChunk", () => {
           }
           return chunk.reduce((sum, n) => sum + n, 0);
         },
-        { chunkSize: 2, noThrow: true }
+        { chunkSize: 2, noThrow: true },
       );
 
       expect(result.hasErrors).toBe(true);
@@ -328,7 +328,7 @@ describe("processInChunksByChunk", () => {
         async () => {
           throw new Error("All chunks fail");
         },
-        { chunkSize: 2, noThrow: true }
+        { chunkSize: 2, noThrow: true },
       );
 
       expect(result.hasErrors).toBe(true);
@@ -357,7 +357,7 @@ describe("throttling", () => {
         chunkStartTimes.push(Date.now());
         return item;
       },
-      { chunkSize: 2, throttleSeconds: 1 }
+      { chunkSize: 2, throttleSeconds: 1 },
     );
 
     /** Process first chunk */
@@ -382,7 +382,7 @@ describe("throttling", () => {
         chunkProcessed.push(got(chunk, 0));
         return chunk.length;
       },
-      { chunkSize: 2, throttleSeconds: 1 }
+      { chunkSize: 2, throttleSeconds: 1 },
     );
 
     /** Advance timers to allow all chunks to process */
