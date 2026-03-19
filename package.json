@@ -2,21 +2,25 @@
   "name": "process-in-chunks",
   "version": "1.2.1",
   "description": "Conveniently process data in chunks",
+  "keywords": [
+    "chunks",
+    "process",
+    "throttling",
+    "typescript"
+  ],
+  "homepage": "https://process-in-chunks.codecompose.dev",
+  "license": "MIT",
+  "author": "Thijs Koerselman",
   "repository": {
     "type": "git",
     "url": "https://github.com/0x80/process-in-chunks"
   },
-  "keywords": [
-    "process",
-    "chunks",
-    "throttling",
-    "typescript"
-  ],
-  "type": "module",
   "files": [
     "dist"
   ],
+  "type": "module",
   "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
   "exports": {
     ".": "./dist/index.mjs",
@@ -25,34 +29,36 @@
   "publishConfig": {
     "access": "public"
   },
-  "engines": {
-    "node": ">=20"
-  },
   "scripts": {
-    "lint": "oxlint --type-aware",
-    "check-types": "tsc --noEmit",
     "build": "tsdown",
+    "dev": "tsdown --watch",
     "clean": "del-cli dist tsconfig.tsbuildinfo",
-    "test": "vitest run",
     "prepare": "pnpm clean && pnpm build",
-    "format": "prettier --write .",
-    "check-format": "prettier --check ."
+    "check-lint": "oxlint -c .oxlintrc.json --type-aware",
+    "format": "oxfmt .",
+    "check-format": "oxfmt --check .",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
-  "author": "Thijs Koerselman",
-  "license": "MIT",
   "devDependencies": {
-    "@codecompose/typescript-config": "^2.2.0",
+    "@codecompose/typescript-config": "^3.0.0",
     "@types/node": "^25.0.3",
     "del-cli": "^7.0.0",
     "get-or-throw": "^2.1.0",
-    "oxlint": "^1.33.0",
-    "oxlint-tsgolint": "^0.9.1",
-    "prettier": "^3.7.4",
-    "prettier-plugin-jsdoc": "^1.8.0",
+    "oxfmt": "^0.33.0",
+    "oxlint": "^1.48.0",
+    "oxlint-tsgolint": "^0.15.0",
     "tsdown": "^0.18.0",
-    "typescript": "^5.9.3",
+    "typescript": "6.0.0-beta",
+    "vite": "^6.0.0",
+    "vitepress": "^1.6.0",
     "vitest": "^4.0.16"
   },
-  "packageManager": "pnpm@9.0.5+sha256.61bd66913b52012107ec25a6ee4d6a161021ab99e04f6acee3aa50d0e34b4af9",
-  "module": "./dist/index.mjs"
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@9.0.5+sha256.61bd66913b52012107ec25a6ee4d6a161021ab99e04f6acee3aa50d0e34b4af9"
 }
