@@ -1,9 +1,6 @@
 {
   "extends": "@codecompose/typescript-config/library",
   "compilerOptions": {
-    /** oxlint wants baseUrl to be removed */
-    "baseUrl": null,
-    "outDir": "./dist",
-    "lib": ["esnext"]
+    "types": ["node"]
   }
 }

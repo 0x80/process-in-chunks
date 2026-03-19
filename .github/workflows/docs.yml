@@ -1,28 +1,26 @@
-name: Checks
+name: Deploy Docs
 
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: ["**"]
-  workflow_call:
+    paths:
+      - "docs/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/docs.yml"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 concurrency:
-  # Skip concurrency restriction when called from another workflow
-  # This prevents deadlocks between parent workflow and this one
-  group:
-    ${{ github.event_name == 'workflow_call' && format('{0}-{1}', github.workflow,
-    github.run_id) || format('{0}-{1}', github.workflow, github.ref) }}
-  cancel-in-progress: true
+  group: pages
+  cancel-in-progress: false
 
 jobs:
-  verify:
+  build:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        command: [check-types, check-format, check-lint, test]
-    name: ${{ matrix.command }}
 
     steps:
       - uses: actions/checkout@v4
@@ -52,8 +50,25 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
-        run: pnpm build
+      - name: Build docs
+        run: pnpm docs:build
 
-      - name: Run ${{ matrix.command }}
-        run: pnpm ${{ matrix.command }}
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/.vitepress/dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
