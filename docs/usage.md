@@ -119,7 +119,7 @@ import { processInChunks } from "process-in-chunks";
 const result = await processInChunks(
   ["1", "2", "invalid", "4", "5"],
   async (str) => {
-    const num = parseInt(str);
+    const num = parseInt(str, 10);
     if (isNaN(num)) {
       throw new Error(`Invalid number: ${str}`);
     }
